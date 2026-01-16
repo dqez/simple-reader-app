@@ -1,0 +1,34 @@
+[versions]
+agp = "8.2.0"
+kotlin = "1.9.0"
+coreKtx = "1.12.0"
+appcompat = "1.6.1"
+material = "1.11.0"
+constraintlayout = "2.1.4"
+activityKtx = "1.8.2"
+webkit = "1.10.0"
+pdfViewer = "2.1.1"
+poi = "5.2.5"
+woodstox = "6.5.1"
+xmlbeans = "5.2.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
+
+# PDF Viewer
+pdf-viewer = { group = "io.github.afreakyelf", name = "Pdf-Viewer", version.ref = "pdfViewer" }
+
+# Apache POI for DOCX/XLSX
+poi = { group = "org.apache.poi", name = "poi", version.ref = "poi" }
+poi-ooxml = { group = "org.apache.poi", name = "poi-ooxml", version.ref = "poi" }
+woodstox-core = { group = "com.fasterxml.woodstox", name = "woodstox-core", version.ref = "woodstox" }
+xmlbeans = { group = "org.apache.xmlbeans", name = "xmlbeans", version.ref = "xmlbeans" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

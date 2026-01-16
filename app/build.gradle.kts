@@ -1,6 +1,6 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
@@ -53,23 +53,21 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.activity:activity-ktx:1.8.2")
-    implementation("androidx.webkit:webkit:1.10.0")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.webkit)
 
     // PDF Viewer
-    implementation("io.github.afreakyelf:Pdf-Viewer:2.1.1")
+    implementation(libs.pdf.viewer)
 
     // Apache POI for DOCX/XLSX
-    // Using main artifact for simplicity in this setup. 
-    // In a production environment aiming for <20MB, we would carefully exclude unused modules or use a lite wrapper.
-    implementation("org.apache.poi:poi:5.2.5")
-    implementation("org.apache.poi:poi-ooxml:5.2.5")
+    implementation(libs.poi)
+    implementation(libs.poi.ooxml)
     
-    // Required for POI on Android to avoid javax conflicts/missing classes
-    implementation("com.fasterxml.woodstox:woodstox-core:6.5.1") 
-    implementation("org.apache.xmlbeans:xmlbeans:5.2.0")
+    // Required for POI on Android
+    implementation(libs.woodstox.core) 
+    implementation(libs.xmlbeans)
 }
