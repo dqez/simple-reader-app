@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Simple Reader</string>
+    <string name="open_file">Mở tài liệu</string>
+    <string name="error_opening_file">Không thể mở tập tin này</string>
+    <string name="loading">Đang tải...</string>
+</resources>
