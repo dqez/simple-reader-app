@@ -1,9 +1,11 @@
 package com.zeq.simple.reader.parser
 
+import android.util.Base64
 import android.util.Log
 import org.apache.poi.xwpf.usermodel.UnderlinePatterns
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFParagraph
+import org.apache.poi.xwpf.usermodel.XWPFPicture
 import org.apache.poi.xwpf.usermodel.XWPFTable
 import java.io.BufferedInputStream
 import java.io.InputStream
@@ -67,6 +69,46 @@ class DocxParser {
         strong { font-weight: 600; }
         em { font-style: italic; }
         u { text-decoration: underline; }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 12px 0;
+            border-radius: 4px;
+        }
+        .image-container {
+            text-align: center;
+            margin: 16px 0;
+        }
+        .page-break {
+            border-top: 2px dashed #9e9e9e;
+            margin: 24px 0;
+            padding-top: 24px;
+            position: relative;
+        }
+        .page-break::before {
+            content: '--- Page Break ---';
+            display: block;
+            text-align: center;
+            color: #757575;
+            font-size: 12px;
+            font-weight: 500;
+            background-color: #ffffff;
+            padding: 4px 12px;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        @media (prefers-color-scheme: dark) {
+            .page-break {
+                border-color: #616161;
+            }
+            .page-break::before {
+                background-color: #121212;
+                color: #9e9e9e;
+            }
+        }
     </style>
 </head>
 <body>
@@ -124,28 +166,179 @@ class DocxParser {
     }
 
     /**
-     * Processes a single paragraph, applying basic styling.
+     * Processes a single paragraph, applying basic styling and extracting images.
      */
     private fun processParagraph(paragraph: XWPFParagraph): String {
-        val text = paragraph.text?.trim() ?: return ""
-        if (text.isEmpty()) return "<p>&nbsp;</p>\n"
+        val builder = StringBuilder()
+
+        // Check for page break before this paragraph
+        if (hasPageBreakBefore(paragraph)) {
+            builder.append("<div class=\"page-break\"></div>\n")
+        }
+
+        // Check for embedded images first
+        val images = extractImagesFromParagraph(paragraph)
+        if (images.isNotEmpty()) {
+            images.forEach { imageHtml ->
+                builder.append(imageHtml)
+            }
+            // Also include any text in the paragraph
+            val text = paragraph.text?.trim() ?: ""
+            if (text.isNotEmpty()) {
+                val escapedText = escapeHtml(text)
+                val style = paragraph.style?.lowercase() ?: ""
+                when {
+                    style.contains("heading1") || style.contains("title") ->
+                        builder.append("<h1>$escapedText</h1>\n")
+                    style.contains("heading2") ->
+                        builder.append("<h2>$escapedText</h2>\n")
+                    style.contains("heading3") ->
+                        builder.append("<h3>$escapedText</h3>\n")
+                    else -> {
+                        val formattedText = processInlineFormatting(paragraph)
+                        builder.append("<p>$formattedText</p>\n")
+                    }
+                }
+            }
+            return builder.toString()
+        }
+
+        val text = paragraph.text?.trim() ?: ""
+        if (text.isEmpty()) {
+            // Even empty paragraphs can have page breaks
+            return if (builder.isNotEmpty()) builder.toString() else "<p>&nbsp;</p>\n"
+        }
 
         val escapedText = escapeHtml(text)
 
         // Detect heading styles
         val style = paragraph.style?.lowercase() ?: ""
-        return when {
+        when {
             style.contains("heading1") || style.contains("title") ->
-                "<h1>$escapedText</h1>\n"
+                builder.append("<h1>$escapedText</h1>\n")
             style.contains("heading2") ->
-                "<h2>$escapedText</h2>\n"
+                builder.append("<h2>$escapedText</h2>\n")
             style.contains("heading3") ->
-                "<h3>$escapedText</h3>\n"
+                builder.append("<h3>$escapedText</h3>\n")
             else -> {
                 // Apply inline formatting
                 val formattedText = processInlineFormatting(paragraph)
-                "<p>$formattedText</p>\n"
+                builder.append("<p>$formattedText</p>\n")
             }
+        }
+
+        return builder.toString()
+    }
+
+    /**
+     * Checks if a paragraph has a page break before it.
+     */
+    private fun hasPageBreakBefore(paragraph: XWPFParagraph): Boolean {
+        try {
+            // Check paragraph properties for page break
+            val ctp = paragraph.ctp
+            if (ctp != null && ctp.pPr != null) {
+                val pageBreakBefore = ctp.pPr.pageBreakBefore
+                if (pageBreakBefore != null) {
+                    try {
+                        // Try to get boolean value
+                        val isPageBreak = pageBreakBefore.`val` == true
+                        if (isPageBreak) return true
+                    } catch (e: Exception) {
+                        // If val property doesn't work, presence of pageBreakBefore element itself indicates true
+                        return true
+                    }
+                }
+            }
+
+            // Check runs for explicit page break
+            paragraph.runs?.forEach { run ->
+                try {
+                    val ctr = run.ctr
+                    if (ctr != null && ctr.brList != null) {
+                        for (br in ctr.brList) {
+                            if (br != null && br.type != null) {
+                                val brType = br.type.toString()
+                                if (brType == "PAGE" || brType.contains("page", ignoreCase = true)) {
+                                    return true
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error checking run for page break", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error checking paragraph for page break", e)
+        }
+
+        return false
+    }
+
+    /**
+     * Extracts images from paragraph runs and converts to base64 HTML img tags.
+     */
+    private fun extractImagesFromParagraph(paragraph: XWPFParagraph): List<String> {
+        val images = mutableListOf<String>()
+
+        try {
+            paragraph.runs.forEach { run ->
+                val embeddedPictures = run.embeddedPictures
+                embeddedPictures?.forEach { picture ->
+                    try {
+                        val imageHtml = convertPictureToHtml(picture)
+                        if (imageHtml != null) {
+                            images.add(imageHtml)
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to process embedded picture", e)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to extract images from paragraph", e)
+        }
+
+        return images
+    }
+
+    /**
+     * Converts XWPFPicture to HTML img tag with base64 encoded data.
+     */
+    private fun convertPictureToHtml(picture: XWPFPicture): String? {
+        try {
+            val pictureData = picture.pictureData ?: return null
+            val imageBytes = pictureData.data ?: return null
+
+            // Convert to base64
+            val base64Image = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+
+            // Get MIME type from extension
+            val extension = pictureData.suggestFileExtension() ?: "png"
+            val mimeType = when (extension.lowercase()) {
+                "jpg", "jpeg" -> "image/jpeg"
+                "png" -> "image/png"
+                "gif" -> "image/gif"
+                "bmp" -> "image/bmp"
+                "webp" -> "image/webp"
+                else -> "image/png"
+            }
+
+            // Get dimensions if available
+            val width = picture.width
+            val height = picture.depth
+
+            val dimensionAttr = if (width > 0 && height > 0) {
+                " style=\"max-width: 100%; width: ${width}px; height: auto;\""
+            } else {
+                ""
+            }
+
+            return "<div class=\"image-container\"><img src=\"data:$mimeType;base64,$base64Image\"$dimensionAttr alt=\"Embedded image\" /></div>\n"
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to convert picture to HTML", e)
+            return null
         }
     }
 
