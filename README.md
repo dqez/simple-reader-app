@@ -21,6 +21,9 @@ Unlike other viewers that bundle heavy rendering engines (often adding 30-50MB),
 ### 3. Native "Open With" Integration
 The app integrates directly with your system's file manager. You don't need to open the app first; just tap your file in "Downloads" or "Files" and select Simple Reader.
 
+### 4. Modern & Intuitive Design
+A completely redesigned home screen featuring smooth animations, gradient aesthetics, and quick access shortcuts, all while maintaining the app's lightweight nature.
+
 ## Supported Formats
 
 *   **PDF (.pdf)**: High-performance rendering using Android's built-in PDF engine. Supports pinch-to-zoom and page virtualization.
@@ -32,7 +35,7 @@ The app integrates directly with your system's file manager. You don't need to o
 For developers interested in the implementation:
 
 *   **Language**: 100% Kotlin.
-*   **UI**: Jetpack Compose (Material 3).
+*   **UI**: Jetpack Compose (Material 3) with custom animations and dynamic gradient themes.
 *   **Architecture**: MVVM / Clean Architecture.
 *   **PDF**: Implemented via `android.graphics.pdf.PdfRenderer` with Bitmap recycling and LruCache for memory efficiency.
 *   **Office**: Uses a ProGuard-stripped version of Apache POI. Complex binaries are parsed to HTML/CSS for rendering in a restricted WebView.
