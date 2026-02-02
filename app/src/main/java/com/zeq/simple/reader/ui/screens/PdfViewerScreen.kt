@@ -1,13 +1,14 @@
 package com.zeq.simple.reader.ui.screens
 
-import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -83,6 +85,11 @@ fun PdfViewerScreen(
         configuration.screenWidthDp.dp.toPx().toInt()
     }
 
+    // GLOBAL zoom state - shared across all pages
+    var globalScale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+
     // Track visible pages and trigger rendering
     LaunchedEffect(listState) {
         snapshotFlow {
@@ -123,6 +130,35 @@ fun PdfViewerScreen(
                         )
                     }
                 },
+                actions = {
+                    // Zoom Controls
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        FilledTonalIconButton(
+                            onClick = {
+                                globalScale = (globalScale - 0.25f).coerceIn(0.5f, 3f)
+                                if (globalScale <= 1f) { offsetX = 0f; offsetY = 0f }
+                            },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Text("−", style = MaterialTheme.typography.titleLarge)
+                        }
+                        Text(
+                            text = "${(globalScale * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                        FilledTonalIconButton(
+                            onClick = {
+                                globalScale = (globalScale + 0.25f).coerceIn(0.5f, 3f)
+                            },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Text("+", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -141,10 +177,23 @@ fun PdfViewerScreen(
                     LoadingIndicator()
                 }
                 is DocumentState.PdfLoaded -> {
-                    PdfPageList(
+                    PdfContentWithGlobalZoom(
                         pages = pages,
                         listState = listState,
                         screenWidth = screenWidth,
+                        globalScale = globalScale,
+                        offsetX = offsetX,
+                        offsetY = offsetY,
+                        onScaleChange = { newScale ->
+                            globalScale = newScale.coerceIn(0.5f, 3f)
+                            if (globalScale <= 1f) { offsetX = 0f; offsetY = 0f }
+                        },
+                        onOffsetChange = { dx, dy ->
+                            if (globalScale > 1f) {
+                                offsetX += dx
+                                offsetY += dy
+                            }
+                        },
                         onPageVisible = { index ->
                             viewModel.renderPage(index, screenWidth)
                         }
@@ -162,46 +211,77 @@ fun PdfViewerScreen(
 }
 
 @Composable
-private fun PdfPageList(
+private fun PdfContentWithGlobalZoom(
     pages: List<PdfPage>,
     listState: LazyListState,
     screenWidth: Int,
+    globalScale: Float,
+    offsetX: Float,
+    offsetY: Float,
+    onScaleChange: (Float) -> Unit,
+    onOffsetChange: (Float, Float) -> Unit,
     onPageVisible: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        state = listState,
-        contentPadding = PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier.fillMaxSize()
-    ) {
-        itemsIndexed(
-            items = pages,
-            key = { index, _ -> index }
-        ) { index, page ->
-            // Trigger rendering when page becomes visible
-            LaunchedEffect(index) {
-                onPageVisible(index)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    onScaleChange(globalScale * zoom)
+                    onOffsetChange(pan.x, pan.y)
+                }
             }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        // Double-tap to toggle zoom
+                        if (globalScale > 1f) {
+                            onScaleChange(1f)
+                        } else {
+                            onScaleChange(2f)
+                        }
+                    }
+                )
+            }
+    ) {
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer(
+                    scaleX = globalScale,
+                    scaleY = globalScale,
+                    translationX = offsetX,
+                    translationY = offsetY
+                )
+        ) {
+            itemsIndexed(
+                items = pages,
+                key = { index, _ -> index }
+            ) { index, page ->
+                // Trigger rendering when page becomes visible
+                LaunchedEffect(index) {
+                    onPageVisible(index)
+                }
 
-            PdfPageItem(
-                page = page,
-                pageNumber = index + 1
-            )
+                PdfPageItemSimple(
+                    page = page,
+                    pageNumber = index + 1
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun PdfPageItem(
+private fun PdfPageItemSimple(
     page: PdfPage,
     pageNumber: Int,
     modifier: Modifier = Modifier
 ) {
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
-
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -218,38 +298,25 @@ private fun PdfPageItem(
                     } else {
                         0.707f // A4 aspect ratio fallback
                     }
-                )
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(1f, 3f)
-                        if (scale > 1f) {
-                            offsetX += pan.x
-                            offsetY += pan.y
-                        } else {
-                            offsetX = 0f
-                            offsetY = 0f
-                        }
-                    }
-                },
+                ),
             contentAlignment = Alignment.Center
         ) {
             when {
                 page.isLoading -> {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
+                        modifier = Modifier.size(32.dp),
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
                 page.bitmap != null && !page.bitmap.isRecycled -> {
-                    BitmapImage(
-                        bitmap = page.bitmap,
-                        scale = scale,
-                        offsetX = offsetX,
-                        offsetY = offsetY
+                    Image(
+                        bitmap = page.bitmap.asImageBitmap(),
+                        contentDescription = "PDF Page $pageNumber",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
                 else -> {
-                    // Placeholder while loading
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -268,28 +335,6 @@ private fun PdfPageItem(
     }
 }
 
-@Composable
-private fun BitmapImage(
-    bitmap: Bitmap,
-    scale: Float,
-    offsetX: Float,
-    offsetY: Float,
-    modifier: Modifier = Modifier
-) {
-    Image(
-        bitmap = bitmap.asImageBitmap(),
-        contentDescription = "PDF Page",
-        contentScale = ContentScale.Fit,
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer(
-                scaleX = scale,
-                scaleY = scale,
-                translationX = offsetX,
-                translationY = offsetY
-            )
-    )
-}
 
 @Composable
 private fun LoadingIndicator(modifier: Modifier = Modifier) {

@@ -102,7 +102,7 @@ fun OfficeViewerScreen(
                 is DocumentState.OfficeLoaded -> {
                     SecureWebView(
                         htmlContent = s.htmlContent,
-                        enableJavaScript = s.documentType == DocumentType.XLSX
+                        enableJavaScript = true
                     )
                 }
                 is DocumentState.Error -> {
