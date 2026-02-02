@@ -21,6 +21,9 @@ Không giống như các trình xem khác thường đóng gói các công cụ 
 ### 3. Tích Hợp "Mở Bằng" (Open With) Tự Nhiên
 Ứng dụng tích hợp trực tiếp với trình quản lý tệp của hệ thống. Bạn không cần phải mở ứng dụng trước; chỉ cần nhấn vào tệp của bạn trong "Tải xuống" hoặc "Tệp" và chọn Simple Reader.
 
+### 4. Thiết Kế Hiện Đại & Trực Quan
+Màn hình chính được thiết kế lại hoàn toàn với các hiệu ứng hoạt hình mượt mà, giao diện gradient đẹp mắt và các phím tắt truy cập nhanh, trong khi vẫn giữ được sự nhẹ nhàng vốn có của ứng dụng.
+
 ## Các Định Dạng Được Hỗ Trợ
 
 *   **PDF (.pdf)**: Hiển thị hiệu suất cao sử dụng công cụ PDF tích hợp sẵn của Android. Hỗ trợ thu phóng bằng hai ngón tay và ảo hóa trang.
@@ -32,7 +35,7 @@ Không giống như các trình xem khác thường đóng gói các công cụ 
 Dành cho các lập trình viên quan tâm đến việc triển khai:
 
 *   **Ngôn Ngữ**: 100% Kotlin.
-*   **Giao Diện (UI)**: Jetpack Compose (Material 3).
+*   **Giao Diện (UI)**: Jetpack Compose (Material 3) với các hiệu ứng hoạt hình tùy chỉnh và chủ đề gradient động.
 *   **Kiến Trúc**: MVVM / Kiến Trúc Sạch (Clean Architecture).
 *   **PDF**: Được triển khai thông qua `android.graphics.pdf.PdfRenderer` với việc tái sử dụng Bitmap và LruCache để tiết kiệm bộ nhớ.
 *   **Office**: Sử dụng phiên bản rút gọn của Apache POI (đã qua ProGuard). Các tệp nhị phân phức tạp được phân tích thành HTML/CSS để hiển thị trong WebView bị hạn chế quyền.

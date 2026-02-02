@@ -1,9 +1,13 @@
 package com.zeq.simple.reader.parser
 
+import android.util.Base64
 import android.util.Log
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.DateUtil
+import org.apache.poi.xssf.usermodel.XSSFDrawing
+import org.apache.poi.xssf.usermodel.XSSFPicture
+import org.apache.poi.xssf.usermodel.XSSFSheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.BufferedInputStream
 import java.io.InputStream
@@ -130,11 +134,83 @@ class XlsxParser {
                 htmlBuilder.append("<p class=\"warning\">⚠️ Showing first $MAX_ROWS rows only</p>\n")
             }
 
+            // Extract and display images from the sheet
+            val sheetImages = extractImagesFromSheet(sheet)
+            if (sheetImages.isNotEmpty()) {
+                htmlBuilder.append("<div class=\"sheet-images\">\n")
+                htmlBuilder.append("<h3>📎 Images in this sheet (${sheetImages.size})</h3>\n")
+                htmlBuilder.append("<div class=\"image-grid\">\n")
+                sheetImages.forEach { imageHtml ->
+                    htmlBuilder.append(imageHtml)
+                }
+                htmlBuilder.append("</div>\n")
+                htmlBuilder.append("</div>\n")
+            }
+
             htmlBuilder.append("</div>\n")
         }
 
         htmlBuilder.append(HTML_FOOTER)
         return htmlBuilder.toString()
+    }
+
+    /**
+     * Extracts images from an Excel sheet and converts to base64 HTML.
+     */
+    private fun extractImagesFromSheet(sheet: XSSFSheet): List<String> {
+        val images = mutableListOf<String>()
+
+        try {
+            val drawing = sheet.drawingPatriarch
+            if (drawing is XSSFDrawing) {
+                val shapes = drawing.shapes
+                shapes.forEach { shape ->
+                    if (shape is XSSFPicture) {
+                        try {
+                            val imageHtml = convertXSSFPictureToHtml(shape)
+                            if (imageHtml != null) {
+                                images.add(imageHtml)
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to process picture in sheet", e)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to extract images from sheet", e)
+        }
+
+        return images
+    }
+
+    /**
+     * Converts XSSFPicture to HTML img tag with base64 encoded data.
+     */
+    private fun convertXSSFPictureToHtml(picture: XSSFPicture): String? {
+        try {
+            val pictureData = picture.pictureData ?: return null
+            val imageBytes = pictureData.data ?: return null
+
+            // Convert to base64
+            val base64Image = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+
+            // Get MIME type from extension
+            val extension = pictureData.suggestFileExtension() ?: "png"
+            val mimeType = when (extension.lowercase()) {
+                "jpg", "jpeg" -> "image/jpeg"
+                "png" -> "image/png"
+                "gif" -> "image/gif"
+                "bmp" -> "image/bmp"
+                "webp" -> "image/webp"
+                else -> "image/png"
+            }
+
+            return "<div class=\"image-item\"><img src=\"data:$mimeType;base64,$base64Image\" alt=\"Sheet image\" /></div>\n"
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to convert picture to HTML", e)
+            return null
+        }
     }
 
     /**
@@ -317,9 +393,43 @@ class XlsxParser {
             background-color: #fff3e0;
             border-radius: 4px;
         }
+        .sheet-images {
+            margin-top: 16px;
+            padding: 12px;
+            background-color: #fafafa;
+            border-radius: 4px;
+        }
+        .sheet-images h3 {
+            font-size: 14px;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+        .image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .image-item {
+            max-width: 300px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .image-item img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
         @media (prefers-color-scheme: dark) {
             .warning {
                 background-color: #3e2723;
+            }
+            .sheet-images {
+                background-color: #1e1e1e;
+            }
+            .image-item {
+                border-color: #424242;
             }
         }
     </style>
