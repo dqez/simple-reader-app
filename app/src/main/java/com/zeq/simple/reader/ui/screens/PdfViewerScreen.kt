@@ -169,25 +169,54 @@ private fun PdfPageList(
     onPageVisible: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        state = listState,
-        contentPadding = PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier.fillMaxSize()
-    ) {
-        itemsIndexed(
-            items = pages,
-            key = { index, _ -> index }
-        ) { index, page ->
-            // Trigger rendering when page becomes visible
-            LaunchedEffect(index) {
-                onPageVisible(index)
-            }
+    // Global zoom state for all pages
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
 
-            PdfPageItem(
-                page = page,
-                pageNumber = index + 1
-            )
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    scale = (scale * zoom).coerceIn(1f, 3f)
+                    if (scale > 1f) {
+                        offsetX += pan.x
+                        offsetY += pan.y
+                    } else {
+                        offsetX = 0f
+                        offsetY = 0f
+                    }
+                }
+            }
+    ) {
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer(
+                    scaleX = scale,
+                    scaleY = scale,
+                    translationX = offsetX,
+                    translationY = offsetY
+                )
+        ) {
+            itemsIndexed(
+                items = pages,
+                key = { index, _ -> index }
+            ) { index, page ->
+                // Trigger rendering when page becomes visible
+                LaunchedEffect(index) {
+                    onPageVisible(index)
+                }
+
+                PdfPageItem(
+                    page = page,
+                    pageNumber = index + 1
+                )
+            }
         }
     }
 }
@@ -198,10 +227,6 @@ private fun PdfPageItem(
     pageNumber: Int,
     modifier: Modifier = Modifier
 ) {
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
-
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -218,19 +243,7 @@ private fun PdfPageItem(
                     } else {
                         0.707f // A4 aspect ratio fallback
                     }
-                )
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(1f, 3f)
-                        if (scale > 1f) {
-                            offsetX += pan.x
-                            offsetY += pan.y
-                        } else {
-                            offsetX = 0f
-                            offsetY = 0f
-                        }
-                    }
-                },
+                ),
             contentAlignment = Alignment.Center
         ) {
             when {
@@ -241,12 +254,7 @@ private fun PdfPageItem(
                     )
                 }
                 page.bitmap != null && !page.bitmap.isRecycled -> {
-                    BitmapImage(
-                        bitmap = page.bitmap,
-                        scale = scale,
-                        offsetX = offsetX,
-                        offsetY = offsetY
-                    )
+                    BitmapImage(bitmap = page.bitmap)
                 }
                 else -> {
                     // Placeholder while loading
@@ -271,23 +279,13 @@ private fun PdfPageItem(
 @Composable
 private fun BitmapImage(
     bitmap: Bitmap,
-    scale: Float,
-    offsetX: Float,
-    offsetY: Float,
     modifier: Modifier = Modifier
 ) {
     Image(
         bitmap = bitmap.asImageBitmap(),
         contentDescription = "PDF Page",
         contentScale = ContentScale.Fit,
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer(
-                scaleX = scale,
-                scaleY = scale,
-                translationX = offsetX,
-                translationY = offsetY
-            )
+        modifier = modifier.fillMaxSize()
     )
 }
 
