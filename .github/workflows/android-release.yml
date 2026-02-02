@@ -26,16 +26,13 @@ jobs:
       - name: Allow permission for Gradle
         run: chmod +x gradlew
 
-      - name: Build APK (Debug)
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+      - name: Build APK (Release)
+        run: ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: Rename and Collect APKs
         run: |
           mkdir -p release-apks
-          # Copy Legacy flavor
-          cp app/build/outputs/apk/legacy/debug/app-legacy-debug.apk release-apks/SimpleReader-Legacy-${{ github.ref_name }}.apk
-          # Copy Modern flavor
-          cp app/build/outputs/apk/modern/debug/app-modern-debug.apk release-apks/SimpleReader-Modern-${{ github.ref_name }}.apk
+          cp app/build/outputs/apk/release/app-release.apk release-apks/SimpleReader-${{ github.ref_name }}.apk
 
       - name: Create Release on GitHub
         uses: softprops/action-gh-release@v2
@@ -44,10 +41,6 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             Automatic version release ${{ github.ref_name }}
-            
-            📂 **Downloads:**
-            - **Legacy**: For Android 8.0 - 12 (API 26+).
-            - **Modern**: Optimized for Android 13+ (API 33+).
           draft: false
           prerelease: false
         env:

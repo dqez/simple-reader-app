@@ -24,7 +24,10 @@ sealed class DocumentState {
     data class OfficeLoaded(
         val htmlContent: String,
         val fileName: String,
-        val documentType: DocumentType
+        val documentType: DocumentType,
+        val rawTextItems: List<String> = emptyList(),
+        val searchResults: List<String> = emptyList(),
+        val searchMatchCount: Int = 0
     ) : DocumentState()
 
     /** Error occurred during loading/parsing */

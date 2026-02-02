@@ -80,10 +80,9 @@ class MainActivity : ComponentActivity() {
     private fun resolveDocumentInfo(uri: Uri): DocumentInfo? {
         return try {
             var fileName: String? = null
-            var mimeType: String? = null
 
             // Get MIME type from ContentResolver
-            mimeType = contentResolver.getType(uri)
+            val mimeType = contentResolver.getType(uri)
             Log.d(TAG, "MIME type from ContentResolver: $mimeType")
 
             // Query for display name
@@ -114,7 +113,7 @@ class MainActivity : ComponentActivity() {
 
             DocumentInfo(
                 uri = uri,
-                fileName = fileName ?: "Document",
+                fileName = fileName,
                 mimeType = mimeType,
                 documentType = documentType
             )
@@ -199,7 +198,7 @@ fun ReaderApp(
                         }
                     )
                 }
-                DocumentType.DOCX, DocumentType.XLSX -> {
+                DocumentType.DOCX, DocumentType.XLSX, DocumentType.PPTX -> {
                     // Open Office document in OfficeViewModel
                     LaunchedEffect(doc.uri) {
                         officeViewModel.openDocument(

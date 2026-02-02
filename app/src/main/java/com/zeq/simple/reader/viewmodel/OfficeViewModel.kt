@@ -10,6 +10,8 @@ import com.zeq.simple.reader.model.DocumentType
 import com.zeq.simple.reader.parser.DocxParser
 import com.zeq.simple.reader.parser.DocumentParseException
 import com.zeq.simple.reader.parser.XlsxParser
+import com.zeq.simple.reader.parser.PptxParser
+import com.zeq.simple.reader.parser.ParseResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,14 +59,15 @@ class OfficeViewModel : ViewModel() {
             _state.value = DocumentState.Loading
 
             try {
-                val htmlContent = withContext(Dispatchers.IO) {
+                val parseResult = withContext(Dispatchers.IO) {
                     parseDocument(contentResolver, uri, documentType)
                 }
 
                 _state.value = DocumentState.OfficeLoaded(
-                    htmlContent = htmlContent,
+                    htmlContent = parseResult.htmlContent,
                     fileName = fileName,
-                    documentType = documentType
+                    documentType = documentType,
+                    rawTextItems = parseResult.rawTextItems
                 )
 
             } catch (e: DocumentParseException) {
@@ -85,21 +88,47 @@ class OfficeViewModel : ViewModel() {
 
     /**
      * Parses document on IO dispatcher.
-     * Opens InputStream from ContentResolver and delegates to appropriate parser.
+     * Delegates to appropriate parser using ContentResolver and Uri.
      */
     private fun parseDocument(
         contentResolver: ContentResolver,
         uri: Uri,
         documentType: DocumentType
-    ): String {
-        val inputStream = contentResolver.openInputStream(uri)
-            ?: throw DocumentParseException("Cannot open input stream for URI: $uri")
+    ): ParseResult {
+        return when (documentType) {
+            DocumentType.DOCX -> docxParser.parse(contentResolver, uri)
+            DocumentType.XLSX -> xlsxParser.parse(contentResolver, uri)
+            DocumentType.PPTX -> PptxParser.parse(contentResolver, uri)
+            else -> throw DocumentParseException("Unsupported document type: $documentType")
+        }
+    }
 
-        return inputStream.use { stream ->
-            when (documentType) {
-                DocumentType.DOCX -> docxParser.parseToHtml(stream)
-                DocumentType.XLSX -> xlsxParser.parseToHtml(stream)
-                else -> throw DocumentParseException("Unsupported document type: $documentType")
+    /**
+     * Performs a text search on the loaded document content.
+     * Updates the state with search results.
+     */
+    fun search(query: String) {
+        val currentState = _state.value
+        if (currentState is DocumentState.OfficeLoaded) {
+            if (query.isBlank()) {
+                _state.value = currentState.copy(
+                    searchResults = emptyList(),
+                    searchMatchCount = 0
+                )
+                return
+            }
+
+            viewModelScope.launch {
+                val results = withContext(Dispatchers.Default) {
+                    currentState.rawTextItems.filter {
+                        it.contains(query, ignoreCase = true)
+                    }
+                }
+
+                _state.value = currentState.copy(
+                    searchResults = results,
+                    searchMatchCount = results.size
+                )
             }
         }
     }

@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.zeq.simple.reader"
-        // minSdk removed here, defined in productFlavors
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -19,17 +19,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    flavorDimensions += "version"
-    productFlavors {
-        create("legacy") {
-            dimension = "version"
-            minSdk = 26
-            versionNameSuffix = "-legacy"
-        }
-        create("modern") {
-            dimension = "version"
-            minSdk = 33
-            versionNameSuffix = "-modern"
+
+    signingConfigs {
+        create("release") {
+            // Use debug keystore for demo/student project
+            // For production, use GitHub Secrets with environment variables
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 
@@ -37,6 +35,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -77,8 +76,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.coil.compose)
 
-    // Apache POI for Office documents (DOCX, XLSX)
-    implementation(libs.poi.ooxml)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

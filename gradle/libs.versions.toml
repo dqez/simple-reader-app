@@ -10,7 +10,6 @@ kotlin = "2.0.21"
 composeBom = "2024.09.00"
 lifecycleViewmodelCompose = "2.10.0"
 navigationCompose = "2.9.0"
-poiOoxmlLite = "5.2.5"
 coilCompose = "2.6.0"
 
 [libraries]
@@ -31,7 +30,6 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
-poi-ooxml = { group = "org.apache.poi", name = "poi-ooxml", version.ref = "poiOoxmlLite" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
 
 [plugins]

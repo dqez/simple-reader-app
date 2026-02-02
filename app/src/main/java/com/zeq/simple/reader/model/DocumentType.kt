@@ -23,6 +23,13 @@ enum class DocumentType(val mimeTypes: List<String>, val extensions: List<String
         ),
         extensions = listOf("xlsx", "xls")
     ),
+    PPTX(
+        mimeTypes = listOf(
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-powerpoint"
+        ),
+        extensions = listOf("pptx", "ppt")
+    ),
     UNKNOWN(
         mimeTypes = emptyList(),
         extensions = emptyList()
