@@ -1,6 +1,6 @@
 # Simple Reader - Lightweight Offline Document Viewer
 
-![img.png](img.png)
+![poster.png](poster.png)
 
 [Đọc tài liệu này bằng Tiếng Việt](README_VI.md)
 

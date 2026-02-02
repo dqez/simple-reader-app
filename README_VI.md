@@ -1,5 +1,7 @@
 # Simple Reader - Trình Đọc Tài Liệu Ngoại Tuyến Siêu Nhẹ
 
+![poster.png](poster.png)
+
 [Read this in English](README.md)
 
 Một trình đọc tài liệu tập trung nghiêm ngặt vào quyền riêng tư, siêu nhẹ dành cho Android 13+.
