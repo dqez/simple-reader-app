@@ -40,4 +40,5 @@ Dành cho các lập trình viên quan tâm đến việc triển khai:
 
 ## Yêu Cầu
 
-*   Android 13 (API Level 33) hoặc cao hơn.
+*   **Phiên bản Hiện đại (Modern)**: Android 13 (API Level 33) hoặc cao hơn.
+*   **Phiên bản Cũ (Legacy)**: Android 8.0 (API Level 26) hoặc cao hơn.

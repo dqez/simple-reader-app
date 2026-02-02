@@ -11,12 +11,26 @@ android {
 
     defaultConfig {
         applicationId = "com.zeq.simple.reader"
-        minSdk = 33
+        // minSdk removed here, defined in productFlavors
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    flavorDimensions += "version"
+    productFlavors {
+        create("legacy") {
+            dimension = "version"
+            minSdk = 26
+            versionNameSuffix = "-legacy"
+        }
+        create("modern") {
+            dimension = "version"
+            minSdk = 33
+            versionNameSuffix = "-modern"
+        }
     }
 
     buildTypes {

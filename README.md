@@ -40,4 +40,5 @@ For developers interested in the implementation:
 
 ## Requirements
 
-*   Android 13 (API Level 33) or higher.
+*   **Modern Version**: Android 13 (API Level 33) or higher.
+*   **Legacy Version**: Android 8.0 (API Level 26) or higher.
